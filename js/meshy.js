@@ -1067,6 +1067,8 @@ Meshy.prototype.buildMeasurementFolder = function() {
 
   this.measurementFolder.add(this, "measureLength").name("Length")
     .title("Measure point-to-point length.");
+  this.measurementFolder.add(this, "measureContour").name("Contour")
+    .title("Measure point-to-point length following surface contour.");
   this.measurementFolder.add(this, "measureAngle").name("Angle")
     .title("Measure angle (in degrees) between two segments formed by three consecutive points.");
   this.measurementFolder.add(this, "measureCircle").name("Circle")
@@ -1225,6 +1227,9 @@ Meshy.prototype.removeAllMeasurements = function() {
 Meshy.prototype.measureLength = function() {
   this.addMeasurement({ type: Measurement.Types.length });
 }
+Meshy.prototype.measureContour = function() {
+  this.addMeasurement({ type: Measurement.Types.contour });
+}
 Meshy.prototype.measureAngle = function() {
   this.addMeasurement({ type: Measurement.Types.angle });
 }
@@ -1373,6 +1378,10 @@ Meshy.prototype.addMeasurement = function(params) {
     item.list.add("Y", item, ["result", "vector", "y"]);
     item.list.add("Z", item, ["result", "vector", "z"]);
   }
+  else if (type === Measurement.Types.contour) {
+    item.list = this.infoBox.addList(item.measurement.uuid, "Contour", params.color);
+    item.list.add("Contour length", item, ["result", "length"]);
+  }
   else if (type === Measurement.Types.angle) {
     item.list = this.infoBox.addList(item.measurement.uuid, "Angle", params.color);
     item.list.add("Angle", item, ["result", "angleDegrees"]);
@@ -1456,6 +1465,9 @@ Meshy.prototype.buildScaleToMeasurementFolder = function() {
   this.scalableMeasurements = scalableMeasurements;
 
   if (type === Measurement.Types.length) {
+    addScalableMeasurement("length");
+  }
+  else if (type === Measurement.Types.contour) {
     addScalableMeasurement("length");
   }
   else if (type === Measurement.Types.circle) {
