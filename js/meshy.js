@@ -1228,7 +1228,14 @@ Meshy.prototype.measureLength = function() {
   this.addMeasurement({ type: Measurement.Types.length });
 }
 Meshy.prototype.measureContour = function() {
-  this.addMeasurement({ type: Measurement.Types.contour });
+  this.addMeasurement({
+  type: Measurement.Types.contour,
+  nearestContour: true,
+  // todo: remove
+  calculateManually: this.calculateManually,
+  showPreviewMarker: this.showPreviewMarker,
+  previewMarkerRadiusOffset: this.previewMarkerRadiusOffset
+  });
 }
 Meshy.prototype.measureAngle = function() {
   this.addMeasurement({ type: Measurement.Types.angle });
