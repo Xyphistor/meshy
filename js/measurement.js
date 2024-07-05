@@ -256,6 +256,7 @@ var Measurement = (function() {
   Measurement.Types = {
     none: "none",
     length: "length",
+    contour: "contour",
     angle: "angle",
     circle: "circle",
     crossSection: "crossSection",
@@ -318,6 +319,39 @@ var Measurement = (function() {
         this.snum = 1; // 1 line marker
         this.ptype = Markers.Types.sphere;
         this.stype = Markers.Types.line;
+        pparams.material = this.meshMarkerMaterial.clone();
+        sparams.material = this.lineMarkerMaterial.clone();
+      }
+      else if (type === Measurement.Types.contour) {
+        this.pnum = 3; // 3 sphere markers
+        this.snum = 1; // 1 contour Marker
+        this.ptype = Markers.Types.sphere;
+        this.stype = Markers.Types.contour;
+
+        // true if selecting only the closest contour to the center of the circle
+        // subtended by the 3 primary markers
+        this.params.nearestContour = this.params.nearestContour || false;
+        // true if splitting the segment soup into an array of contiguous loops,
+        // and necessarily true if finding the nearest contour
+        this.params.splitContours = this.params.nearestContour || this.params.splitContours || false;
+        // true if calculating manually and need to show an intermediate circle
+        // marker while the measurement hasn't been calculated
+        this.params.showPreviewMarker =
+          this.params.calculateManually && (this.params.showPreviewMarker || false);
+        // if showing preview circle marker, this is its radial offset from the
+        // computed circle subtended by the 3 primary markers
+        this.params.previewMarkerRadiusOffset = this.params.previewMarkerRadiusOffset || 0.0;
+        this.params.previewMarkerColor = this.params.previewMarkerColor || this.params.color;
+
+        // make a special preview marker if necessary
+        if (this.params.showPreviewMarker) {
+          this.previewMarker = Markers.create(Markers.Types.circle, {
+            name: "measurementMarkerPreview" + this.uuid
+          });
+          this.previewMarker.setColor(this.params.previewMarkerColor);
+          this.previewMarker.addToScene(scene);
+        }
+
         pparams.material = this.meshMarkerMaterial.clone();
         sparams.material = this.lineMarkerMaterial.clone();
       }
@@ -517,6 +551,10 @@ var Measurement = (function() {
         // need 2 constraining points
         return this.params.p[0] && this.params.p[1];
       }
+      else if (type === Measurement.Types.contour) {
+        // need 3 constraining points
+        return this.params.p[0] && this.params.p[1] && this.params.p[2];
+      }
       else if (type === Measurement.Types.angle) {
         // need 3 constraining points
         return this.params.p[0] && this.params.p[1] && this.params.p[2];
@@ -570,6 +608,71 @@ var Measurement = (function() {
         var diff = p0.clone().sub(p1);
         this.result.length = diff.length();
         this.result.vector = vector3Abs(diff);
+        this.result.ready = true;
+      }
+      else if (type === Measurement.Types.contour) {
+        // variables that determine the plane
+        var normal, point;
+
+        var p0 = this.params.p[0];
+        var p1 = this.params.p[1];
+        var p2 = this.params.p[2];
+
+        // compute the circle parameters from three points
+        var circle = Calculate.circleFromThreePoints(p0, p1, p2);
+
+        if (!circle) return;
+
+        normal = circle.normal;
+        point = circle.center;
+        
+        var plane = new Plane();
+
+        // set the plane
+        plane.setFromNormalAndCoplanarPoint(normal, point);
+
+        // having the plane, we can compute the cross-section
+        var contours = Calculate.crossSection(plane, this.pointer.objects, this.params.splitContours);
+
+        // if getting the nearest contour, retrieve it and use it as the measurement result
+        if (this.params.nearestContour) {
+          contours = [Calculate.nearestContourToPoints(contours, this.params.p)];
+        }
+
+        // final quantities
+        var segments = [];
+        var area = 0;
+        var length = 0;
+        var boundingBox = new THREE.Box3();
+
+        // accumulate the segment array
+        for (var c = 0, lc = contours.length; c < lc; c++) {
+          arrayAppend(segments, contours[c].segments);
+        }
+
+        // else, just accumulate the final bounding box, area, and length
+        else {
+          for (var c = 0, lc = contours.length; c < lc; c++) {
+            var contour = contours[c];
+
+            boundingBox.expandByPoint(contour.boundingBox.min);
+            boundingBox.expandByPoint(contour.boundingBox.max);
+
+            area += contour.area;
+            length += contour.length;
+          }
+        }
+
+        // set the contour marker from the segment array
+        if (this.smarkers && this.smarkers.length > 0) {
+          this.smarkers[0].setFromSegments(segments);
+        }
+
+        // fill the measurement result
+        this.result.area = area;
+        this.result.boundingBox = boundingBox;
+        this.result.length = length;
+        this.result.contours = contours;
         this.result.ready = true;
       }
       else if (type === Measurement.Types.angle) {
