@@ -658,6 +658,7 @@ var Measurement = (function() {
             segments = hull.segments;
             area = hull.area;
             length = hull.length;
+            boundingBox = hull.boundingBox;
           }
         }
           
@@ -665,6 +666,9 @@ var Measurement = (function() {
         else {
           for (var c = 0, lc = contours.length; c < lc; c++) {
             var contour = contours[c];
+
+            boundingBox.expandByPoint(contour.boundingBox.min);
+            boundingBox.expandByPoint(contour.boundingBox.max);
 
             area += contour.area;
             length += contour.length;
@@ -677,9 +681,11 @@ var Measurement = (function() {
         }
 
         // fill the measurement result
+        this.result.area = area;
+        this.result.boundingBox = boundingBox;
         this.result.length1 = length;
         this.result.length2 = contours;
-        this.result.length3 = contours;
+        this.result.length3 = contours + length;
         this.result.ready = true;
       }
       else if (type === Measurement.Types.angle) {
