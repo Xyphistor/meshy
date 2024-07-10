@@ -1231,6 +1231,7 @@ Meshy.prototype.measureContour = function() {
   this.addMeasurement({
   type: Measurement.Types.contour,
   nearestContour: true,
+  convexHull: this.measureConvexHull,
   // todo: remove
   calculateManually: this.calculateManually,
   showPreviewMarker: this.showPreviewMarker,
@@ -1387,7 +1388,9 @@ Meshy.prototype.addMeasurement = function(params) {
   }
   else if (type === Measurement.Types.contour) {
     item.list = this.infoBox.addList(item.measurement.uuid, "Contour", params.color);
-    item.list.add("Contour length", item, ["result", "length"]);
+    item.list.add("Contour length 1", item, ["result", "length1"]);
+    item.list.add("Contour length 2", item, ["result", "length2"]);
+    item.list.add("Contour length 3", item, ["result", "length3"]);
   }
   else if (type === Measurement.Types.angle) {
     item.list = this.infoBox.addList(item.measurement.uuid, "Angle", params.color);
@@ -1475,7 +1478,9 @@ Meshy.prototype.buildScaleToMeasurementFolder = function() {
     addScalableMeasurement("length");
   }
   else if (type === Measurement.Types.contour) {
-    addScalableMeasurement("length");
+    addScalableMeasurement("length1");
+    addScalableMeasurement("length2");
+    addScalableMeasurement("length3");
   }
   else if (type === Measurement.Types.circle) {
     addScalableMeasurement("radius");
