@@ -650,13 +650,21 @@ var Measurement = (function() {
           arrayAppend(segments, contours[c].segments);
         }
 
+        // if computing the convex hull, get the result from that
+        if (this.params.convexHull) {
+          var hull = Calculate.planarConvexHull(plane, segments);
+
+          if (hull) {
+            segments = hull.segments;
+            area = hull.area;
+            length = hull.length;
+          }
+        }
+          
         // else, just accumulate the final bounding box, area, and length
         else {
           for (var c = 0, lc = contours.length; c < lc; c++) {
             var contour = contours[c];
-
-            boundingBox.expandByPoint(contour.boundingBox.min);
-            boundingBox.expandByPoint(contour.boundingBox.max);
 
             area += contour.area;
             length += contour.length;
@@ -669,10 +677,9 @@ var Measurement = (function() {
         }
 
         // fill the measurement result
-        this.result.area = area;
-        this.result.boundingBox = boundingBox;
-        this.result.length = length;
-        this.result.contours = contours;
+        this.result.length1 = length;
+        this.result.length2 = contours;
+        this.result.length3 = contours;
         this.result.ready = true;
       }
       else if (type === Measurement.Types.angle) {
